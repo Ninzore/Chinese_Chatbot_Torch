@@ -1,7 +1,9 @@
 # Chinese_Chatbot_Torch
 
-requirements: PyTorch, Jieba
-使用QQ的聊天记录作为语料库，需要先把QQ聊天记录提取为txt格式才能使用
+requirements: PyTorch, Jieba  
+
+使用QQ的聊天记录作为语料库，需要先把QQ聊天记录提取为txt格式才能使用  
+每个模块在干什么，在代码注释里写的还是比较清楚  
 
 程序运行顺序
 ```graph

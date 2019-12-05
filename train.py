@@ -8,7 +8,11 @@ import corpus_gen
 def maskedLoss(input_seq, target, mask, device):
     '''
     对比解码器的输出和binary mask来计算损失
-    损失计算对为binary mask张量中那些1的词语的对应词序求平均值的负对数
+    损失计算对为binary mask张量中那些1的词语的对应词序求平均值的负对数  
+    Args:
+        input_seq: tensor 解码器输出
+        target: tensor target_tensor
+        mask: booltensor 经过binaryMask后的target_seq
     '''
     num_voc = mask.sum()
     cross_entropy = -torch.log(torch.gather(input_seq, 1, target.view(-1, 1)).squeeze(1))
@@ -19,6 +23,17 @@ def maskedLoss(input_seq, target, mask, device):
 
 def trainOnce(in_tensor, target_tensor, mask, len_tensor, target_len, batch_size, clip,
               encoder, decoder, encoder_optimizer, decoder_optimizer, device):
+    '''
+    一次训练  
+    Args:
+        in_tensor: tensor 经过zeropadding后的input seq
+        target_tensor tensor 经过zeropadding后的target seq
+        mask: booltensor 经过binaryMask后的target seq
+        len_tensor: tensor 表示in_tensor的每列的长度
+        target_len: int 表示target seq的长度
+        batch_size: 单个batch的大小
+        clip: 裁剪率
+    '''
 
     # 清零梯度
     encoder_optimizer.zero_grad()
@@ -83,6 +98,15 @@ def trainOnce(in_tensor, target_tensor, mask, len_tensor, target_len, batch_size
 
 
 def train(batch_list, batch_size, learning_rate, total_gen, encoder, decoder, device, checkpoint=False):
+    '''
+    迭代训练  
+    Args:
+        batch_list: list [[input_seq],[target_seq]]....
+        batch_size: int 决定单个batch的大小
+        learning_rate: int encoder的学习率
+        total_gen: int 总迭代次数
+        checkpoint: dict 模型参数储存字典
+    '''
     decoder_lr_ratio = 5
     encoder_lr = learning_rate
     decoder_lr = learning_rate * decoder_lr_ratio
@@ -142,7 +166,6 @@ def train(batch_list, batch_size, learning_rate, total_gen, encoder, decoder, de
 
 def test(checkpoint):
     # 读取语料库
-
     with open(corpus_paris_path, 'r', encoding='utf-8') as corpus_paris:
         corpus = csv.reader(corpus_paris, delimiter="\t")
         header = next(corpus)
@@ -175,21 +198,26 @@ def test(checkpoint):
     train(batch_list, batch_size, learning_rate, total_gen, encoder, decoder, device, checkpoint)
 
 class GreedySearchDecoder(torch.nn.Module):
+    '''
+    贪婪解码
+    '''
     def __init__(self, encoder, decoder):
         torch.nn.Module.__init__(self)
         self.encoder = encoder
         self.decoder = decoder
     
     def forward(self, seq_in, seq_len, max_len):
+        #获得初始encoder输出和隐藏层状态
         encoder_out, encoder_hidden = self.encoder(seq_in, seq_len)
         decoder_hidden = encoder_hidden[:self.decoder.num_layers]
-        
+        #产生一个全1的列表以保存之后拿到的token，填入句子起始符作为输出
         decoder_in = torch.ones(1, 1, device=device, dtype=torch.long) * SOS_token
-        
+        #用于保存token和score
         all_tokens = torch.zeros([0], device=device, dtype=torch.long)
         all_scores = torch.zeros([0], device=device)
 
         for _ in range(max_len):
+            #对每一个位置都进行一次解码
             decoder_out, decoder_hidden = self.decoder(decoder_in, decoder_hidden, encoder_out)
             decoder_score, decoder_in = torch.max(decoder_out, dim=1)
             all_tokens = torch.cat((all_tokens, decoder_in), dim=0)
@@ -199,9 +227,25 @@ class GreedySearchDecoder(torch.nn.Module):
 
 
 def evaluate(sentence, word2index, index2word, encoder, decoder, GreedySearchDecoder, device, max_len):
+    '''
+    接收输入的句子，转换为一个batch，经过贪婪解码后获取每个位置的token，查找index2word字典转换为文字输出  
+    Args:
+        sentence: str 输入的句子
+        word2index: dict 字符转index字典
+        index2word：dict index转字符字典
+        encoder: 编码器
+        decoder: 解码器
+        GreedySearchDecoder: 贪婪解码器
+        device: 使用的硬件
+        max_len: int 解码器输出字符串最长长度
+    
+    return:
+        sentence_out: str 输出字符串
+    '''
+    
     sequence = [preprocess.wordToIndex(sentence, word2index)]
-    print("here is sequence")
-    print(sequence)
+    # print("here is sequence")
+    # print(sequence)
     len_tensor = torch.tensor([len(seq) for seq in sequence])
     batch = torch.LongTensor(sequence).transpose(0,1)
     batch = batch.to(device)
@@ -215,77 +259,75 @@ def evaluate(sentence, word2index, index2word, encoder, decoder, GreedySearchDec
 
 def chat(encoder, decoder, word2index, index2word, GreedySearchDecoder, device, max_len):
     while True:
-        # try:
-        #     sentence_in = input(">")
-        #     if sentence_in == "88" or sentence_in == "quit": break
-        #     sentence_out = evaluate(sentence_in, word2index, index2word,
-        #                             encoder, decoder, GreedySearchDecoder, device, max_len)
-        #     print("Bot" + sentence_out)
-        # except:
-        #     print("Error")
-
-        sentence_in = input(">")
-        if sentence_in == "88" or sentence_in == "quit": break
-        sentence_out = evaluate(sentence_in, word2index, index2word,
-                                encoder, decoder, GreedySearchDecoder, device, max_len)
+        try:
+            sentence_in = input(">")
+            if sentence_in == "88" or sentence_in == "quit": break
+            sentence_out = evaluate(sentence_in, word2index, index2word,
+                                    encoder, decoder, GreedySearchDecoder, device, max_len)
         print("Bot" + sentence_out)
+        except:
+            print("Error")
+        
+
+def chatBegin(){
+    #存放用于测试聊天用的代码
+    SOS_token = 2
+    EOS_token = 3
+    train_save_path = 'D:/1000.pth'
+    # corpus_paris_path = 'D:/corpus_paris.csv'
+    corpus_paris_path = "D:/clean_chat_corpus/xiaohuangji_processed.tsv"
+    dict_path = "D:/clean_chat_corpus/xiaohuangji_dict.tsv"
+    word2index = []
+    index2word = []
+    word2index, index2word = preprocess.load(dict_path)
+    num_words = len(index2word)
+
+    num_layers = 2
+    dropout = 0.1
+    hidden_size = 256
+    output_size = num_words
+    embedding = torch.nn.Embedding(num_words, hidden_size)
+    learning_rate = 0.0001
+    decoder_lr_ratio = 5
+    encoder_lr = learning_rate
+    decoder_lr = learning_rate * decoder_lr_ratio
+    total_gen = 5000
+    batch_size = 1024
 
 
-SOS_token = 2
-EOS_token = 3
-train_save_path = 'D:/2000.pth'
-# corpus_paris_path = 'D:/corpus_paris.csv'
-corpus_paris_path = "D:/clean_chat_corpus/xiaohuangji_processed.tsv"
-dict_path = "D:/clean_chat_corpus/xiaohuangji_dict.tsv"
-word2index = []
-index2word = []
-word2index, index2word = preprocess.load(dict_path)
-num_words = len(index2word)
-
-num_layers = 2
-dropout = 0
-hidden_size = 256
-output_size = num_words
-embedding = torch.nn.Embedding(num_words, hidden_size)
-learning_rate = 0.0001
-decoder_lr_ratio = 5
-encoder_lr = learning_rate
-decoder_lr = learning_rate * decoder_lr_ratio
-total_gen = 4000
-batch_size = 1800
+    encoder = rnn_model.encoderRNN(embedding, num_layers=num_layers, hidden_size=hidden_size, dropout=dropout)
+    decoder = rnn_model.decoderRNN(embedding, hidden_size, output_size, num_layers, dropout=dropout)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cpu")
+    encoder.to(device)
+    decoder.to(device)
+    checkpoint = torch.load(train_save_path)
+    encoder.load_state_dict(checkpoint["en"])
+    decoder.load_state_dict(checkpoint["de"])
+    encoder.eval()
+    decoder.eval()
+    GreedySearchDecoder = GreedySearchDecoder(encoder, decoder)
+    chat(encoder, decoder, word2index, index2word, GreedySearchDecoder, device, 20)
+}
 
 
+def trainBegin(load=False, load_dict=True){
+    #存放用于训练用的代码
+    
+    checkpoint = False
 
-encoder = rnn_model.encoderRNN(embedding, num_layers=num_layers, hidden_size=hidden_size, dropout=dropout)
-decoder = rnn_model.decoderRNN(embedding, hidden_size, output_size, num_layers, dropout=dropout)
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# device = torch.device("cpu")
-encoder.to(device)
-decoder.to(device)
-checkpoint = torch.load(train_save_path)
-encoder.load_state_dict(checkpoint["en"])
-decoder.load_state_dict(checkpoint["de"])
-encoder.eval()
-decoder.eval()
-GreedySearchDecoder = GreedySearchDecoder(encoder, decoder)
-chat(encoder, decoder, word2index, index2word, GreedySearchDecoder, device, 20)
+    if load:
+        checkpoint = torch.load(train_save_path)
 
+    if load_dict:
+        word2index, index2word = preprocess.load(dict_path)
+        num_words = len(index2word)
+    else:
+        word2index, index2word = preprocess.wordCount()
+        num_words = len(index2word)
 
+    test(checkpoint)    
+}
 
-# load = True
-# load_dict = True
-# checkpoint = False
-
-
-# if load:
-#     checkpoint = torch.load(train_save_path)
-
-# if load_dict:
-#     word2index, index2word = preprocess.load(dict_path)
-#     num_words = len(index2word)
-# else:
-#     word2index, index2word = preprocess.wordCount()
-#     num_words = len(index2word)
-
-
-# test(checkpoint)
+trainBegin(load=False, load_dict=True)
+chatBegin()

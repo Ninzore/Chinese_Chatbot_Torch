@@ -3,14 +3,14 @@
 requirements: PyTorch, Jieba  
 
 使用QQ的聊天记录作为语料库，需要先把QQ聊天记录提取为txt格式才能使用  
-每个模块在干什么，在代码注释里写的还是比较清楚  
+每个模块在干什么，在代码注释里写的还是比较清楚的  
 
 程序运行顺序
 ```graph
-    chatlog-->preprocess-->corpus_gen-->rnn_model-->train;
+    格式化聊天记录-->预处理-->生成语料库-->训练模型-->聊天测试;
 ```
 
-执行顺序
+运行程序
 ```graph
     chatlog-->preprocess-->train;
 ```

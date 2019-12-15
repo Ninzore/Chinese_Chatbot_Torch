@@ -5,6 +5,8 @@ requirements: PyTorch, Jieba
 使用QQ的聊天记录作为语料库，需要先把QQ聊天记录提取为txt格式才能使用  
 每个模块在干什么，在代码注释里写的还是比较清楚的  
 
+!!!由于QQ聊天过于碎片化，并且每句都很短，聊天记录条数最好大于100W !!!
+  
 程序运行顺序
 ```graph
     格式化聊天记录-->预处理-->生成语料库-->训练模型-->聊天测试;
@@ -18,7 +20,7 @@ requirements: PyTorch, Jieba
 ###  chatlog:
   会根据QQ聊天记录生成一个csv文件，作为之后的材料  
   
-###  preprocess：会在这个csv的基础上生成
+###  preprocess: 会在这个csv的基础上生成
   1.  所需要的字典index2voc和voc2index
   2.  根据voc2index字典生成的index句子对，句子对文件分为2行，左边是input，右边是target
   

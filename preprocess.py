@@ -8,8 +8,8 @@ voc_index_path = 'D:/voc_index.txt'
 costom_dict_path = 'D:/costom_dict.txt'
 
 
-MAX_LEN = 20
-MIN_FREQ = 10
+MAX_LEN = 50
+MIN_FREQ = 20
 MAX_DICT_LEN = 20000
 PAD_token = "</PAD>"
 SOS_token = "</SOS>"
@@ -38,14 +38,14 @@ def wordCount(MAX_LEN=50):
     voc_dict_filt = {}
     n = 0
     for voc in voc_index.items():
-        if voc[1] > MIN_FREQ and n<MAX_DICT_LEN:
+        if voc[1] > MIN_FREQ and n < MAX_DICT_LEN:
             voc_dict_filt[voc[0]] = voc[1]
             n += 1
             if n%20 == 0: print(len(voc_dict_filt))
         else: 
             pass
     # voc_dict_filt.update({PAD_token:0, UNKNOWEN_token:1, SOS_token:2, EOS_token:3})
-    voc_list = sorted(voc_dict_filt.items(), key=lambda voc_dict_filt: voc_dict_filt[1], reverse=True) #按照词频排序
+    voc_list = sorted(voc_dict_filt.items(), key=lambda voc_dict_filt: voc_dict_filt[1], reverse=True) #按照词频排序从低到高排
     # voc_list =  [PAD_token, UNKNOWEN_token, SOS_token, EOS_token] + [voc[0] for voc in voc_list]
     voc_list =  [PAD_token, UNKNOWEN_token, SOS_token, EOS_token] + [voc[0] for voc in voc_list]
     index2voc = {index : voc for index, voc in  enumerate(voc_list, 0)}  #得出序列:词语字典
@@ -131,25 +131,7 @@ def pairsGen(preprocess_path, corpus_paris_path):
                     pairs.writerow([",".join(left), ",".join(right)])
                     left = right
 
-# index2voc, voc2index = wordCount()
-# saveWordToIndexLog(index2voc, voc2index)
-# save(index2voc, voc2index)
-# pairsGen(preprocess_path, corpus_paris_path)
-
-# load()
-
-
-# with open (preprocess_path, 'w', encoding='utf-8') as preprocess_data:
-#     preprocess = csv.writer(preprocess_data, delimiter='\t')
-#     preprocess.writerow(["left", "right"])
-#     #把句子从[1,2,3,4]变成[1,2],[2,3],[3,4]
-#     left = jieba.lcut(sentence.__next__(), cut_all=False)[:MAX_LEN]
-#     right = []
-#     for content in sentence:
-#         right = jieba.lcut(content, cut_all=False)[:MAX_LEN]
-#         #略过复读
-#         if (left != right):
-#             preprocess.writerow(["/".join(left), "/".join(right)])
-#             #print("left = " + "/".join(left) +"right = " + "/".join(right))
-#         left = right
-
+index2voc, voc2index = wordCount()
+saveWordToIndexLog(index2voc, voc2index)
+save(index2voc, voc2index)
+pairsGen(preprocess_path, corpus_paris_path)
